@@ -5,7 +5,10 @@ import { NavigationState, PartialState, InitialState } from './types';
 type ParseConfig = Record<string, (value: string) => any>;
 
 type Options = {
-  [routeName: string]: string | { path: string; parse?: ParseConfig } | Options;
+  [routeName: string]:
+    | string
+    | { path: string; parse?: ParseConfig; initial?: boolean }
+    | Options;
 };
 
 type RouteConfig = {
@@ -42,6 +45,25 @@ export default function getStateFromPath(
   path: string,
   options: Options = {}
 ): ResultState | undefined {
+  // If path is empty string, we have to find `initial prop in config and return it
+  if (path === '') {
+    const initialConfigRouteNames = findInitialConfigNames(options, [], '');
+    initialConfigRouteNames.shift();
+    const state = { routes: [{ name: '' }] };
+    let helper = state;
+    let name;
+    while ((name = initialConfigRouteNames.shift())) {
+      if (initialConfigRouteNames.length === 0) {
+        helper.routes[0] = { name };
+        break;
+      }
+      helper.routes[0] = { name, state: { routes: [{ name: '' }] } };
+      helper = helper.routes[0].state as ResultState;
+    }
+    console.warn(state);
+    return state;
+  }
+
   // Create a normalized configs array which will be easier to use
   const configs = ([] as RouteConfig[]).concat(
     ...Object.keys(options).map(key => createNormalizedConfigs(key, options))
@@ -206,10 +228,16 @@ function createNormalizedConfigs(
             value.parse ? (value.parse as ParseConfig) : undefined
           )
         );
-      } else if (nestedKey === 'parse') {
+      } else if (
+        nestedKey === 'parse' ||
+        nestedKey === 'initial' ||
+        nestedKey === 'stringify'
+      ) {
         // We handle custom parse function when a `path` is specified (in nestedKey === path)
+        // `initial` prop should be ignored if path is not empty string
+        // `stringify` prop is used in tests to create similar configs and should be ignored too
       } else {
-        // If the name of the key is not `path` or `parse`, it's a nested config for route
+        // If the name of the key is not `path` or `parse` or `initial`, it's a nested config for route
         // So we need to traverse into it and collect the configs
         const result = createNormalizedConfigs(
           nestedKey,
@@ -264,4 +292,28 @@ function findParseConfigForRoute(
   }
 
   return undefined;
+}
+
+function findInitialConfigNames(
+  config: Options,
+  routeNames: string[],
+  currentName: string
+): string[] {
+  routeNames.push(currentName);
+
+  for (const name in config) {
+    console.warn(name);
+    if (typeof config[name] === 'object' && name !== 'string') {
+      console.warn(config[name]);
+      if ((config[name] as { initial?: boolean }).initial) {
+        routeNames.push(name);
+        return routeNames;
+      } else {
+        return findInitialConfigNames(config[name], routeNames, name);
+      }
+    }
+  }
+
+  routeNames.pop();
+  return routeNames;
 }

@@ -8,7 +8,7 @@ type StringifyConfig = Record<string, (value: any) => string>;
 type Options = {
   [routeName: string]:
     | string
-    | { path: string; stringify?: StringifyConfig }
+    | { path: string; stringify?: StringifyConfig; initial?: boolean }
     | Options;
 };
 
@@ -60,6 +60,10 @@ export default function getPathFromState(
         pattern = currentOptions[route.name] as string;
         break;
       } else if (typeof currentOptions[route.name] === 'object') {
+        // if there is `initial` property, we should return empty string immidiately
+        if ((currentOptions[route.name] as { initial?: boolean }).initial) {
+          return '';
+        }
         if (route.state === undefined) {
           pattern = (currentOptions[route.name] as { path: string }).path;
           break;
