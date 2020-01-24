@@ -43,6 +43,10 @@ export default function getPathFromState(
   state?: State,
   options: Options = {}
 ): string {
+  if (state === undefined) {
+    throw Error('NavigationState not passed');
+  }
+
   let path = '/';
 
   let current: State | undefined = state;
@@ -50,7 +54,7 @@ export default function getPathFromState(
   while (current) {
     let index = typeof current.index === 'number' ? current.index : 0;
     let route = current.routes[index] as Route<string> & {
-      state?: State | undefined;
+      state?: State;
     };
     let currentOptions = options;
     let pattern = route.name;
@@ -60,7 +64,7 @@ export default function getPathFromState(
         pattern = currentOptions[route.name] as string;
         break;
       } else if (typeof currentOptions[route.name] === 'object') {
-        // if there is `initial` property, we should return empty string immidiately
+        // if there is `initial` prop in config, we should return empty string immidiately
         if ((currentOptions[route.name] as { initial?: boolean }).initial) {
           return '';
         }
@@ -71,7 +75,7 @@ export default function getPathFromState(
           currentOptions = currentOptions[route.name] as Options;
           index = typeof route.state.index === 'number' ? route.state.index : 0;
           route = route.state.routes[index] as Route<string> & {
-            state?: State | undefined;
+            state?: State;
           };
         }
       }

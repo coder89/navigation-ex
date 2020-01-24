@@ -36,7 +36,7 @@ it('converts state to path string', () => {
 
 it('converts state to path string with config', () => {
   const path = '/few/bar/sweet/apple/baz/jane?id=x10&valid=true';
-  const config = {
+  const stateConfig = {
     Foo: 'few',
     Bar: 'bar/:type/:fruit',
     Baz: {
@@ -46,6 +46,14 @@ it('converts state to path string with config', () => {
         id: (id: string) => Number(id.replace(/^x/, '')),
         valid: Boolean,
       },
+    },
+  };
+
+  const pathConfig = {
+    Foo: 'few',
+    Bar: 'bar/:type/:fruit',
+    Baz: {
+      path: 'baz/:author',
       stringify: {
         author: (author: string) => author.toLowerCase(),
         id: (id: number) => `x${id}`,
@@ -79,8 +87,10 @@ it('converts state to path string with config', () => {
     ],
   };
 
-  expect(getPathFromState(state, config)).toBe(path);
-  expect(getPathFromState(getStateFromPath(path, config), config)).toBe(path);
+  expect(getPathFromState(state, pathConfig)).toBe(path);
+  expect(
+    getPathFromState(getStateFromPath(path, stateConfig), pathConfig)
+  ).toBe(path);
 });
 
 it('handles route without param', () => {
@@ -117,7 +127,7 @@ it("doesn't add query param for empty params", () => {
 
 it('handles state with config with nested screens', () => {
   const path = '/few/bar/sweet/apple/baz/jane?answer=42&count=10&valid=true';
-  const config = {
+  const stateConfig = {
     Foo: {
       Foe: 'few',
     },
@@ -129,6 +139,16 @@ it('handles state with config with nested screens', () => {
         count: Number,
         valid: Boolean,
       },
+    },
+  };
+
+  const pathConfig = {
+    Foo: {
+      Foe: 'few',
+    },
+    Bar: 'bar/:type/:fruit',
+    Baz: {
+      path: 'baz/:author',
       stringify: {
         author: (author: string) => author.toLowerCase(),
         id: (id: number) => `x${id}`,
@@ -173,13 +193,15 @@ it('handles state with config with nested screens', () => {
     ],
   };
 
-  expect(getPathFromState(state, config)).toBe(path);
-  expect(getPathFromState(getStateFromPath(path, config), config)).toBe(path);
+  expect(getPathFromState(state, pathConfig)).toBe(path);
+  expect(
+    getPathFromState(getStateFromPath(path, stateConfig), pathConfig)
+  ).toBe(path);
 });
 
 it('handles state with config with nested screens and unused configs', () => {
   const path = '/few/baz/jane?answer=42&count=10&valid=true';
-  const config = {
+  const stateConfig = {
     Foo: {
       Foe: 'few',
     },
@@ -190,6 +212,15 @@ it('handles state with config with nested screens and unused configs', () => {
         count: Number,
         valid: Boolean,
       },
+    },
+  };
+
+  const pathConfig = {
+    Foo: {
+      Foe: 'few',
+    },
+    Baz: {
+      path: 'baz/:author',
       stringify: {
         author: (author: string) => author.replace(/^\w/, c => c.toLowerCase()),
         unknown: (_: unknown) => 'x',
@@ -225,13 +256,28 @@ it('handles state with config with nested screens and unused configs', () => {
     ],
   };
 
-  expect(getPathFromState(state, config)).toBe(path);
-  expect(getPathFromState(getStateFromPath(path, config), config)).toBe(path);
+  expect(getPathFromState(state, pathConfig)).toBe(path);
+  expect(
+    getPathFromState(getStateFromPath(path, stateConfig), pathConfig)
+  ).toBe(path);
 });
 
 it('handles nested object with stringify in it', () => {
   const path = '/bar/sweet/apple/few/bis/jane?answer=42&count=10&valid=true';
-  const config = {
+  const stateConfig = {
+    Foo: {
+      Foe: 'few',
+    },
+    Bar: 'bar/:type/:fruit',
+    Baz: {
+      Bos: 'bos',
+      Bis: {
+        path: 'bis/:author',
+      },
+    },
+  };
+
+  const pathConfig = {
     Foo: {
       Foe: 'few',
     },
@@ -291,8 +337,10 @@ it('handles nested object with stringify in it', () => {
     ],
   };
 
-  expect(getPathFromState(state, config)).toBe(path);
-  expect(getPathFromState(getStateFromPath(path, config), config)).toBe(path);
+  expect(getPathFromState(state, pathConfig)).toBe(path);
+  expect(
+    getPathFromState(getStateFromPath(path, stateConfig), pathConfig)
+  ).toBe(path);
 });
 
 it('handles nested object for second route depth', () => {
@@ -326,12 +374,26 @@ it('handles nested object for second route depth', () => {
   };
 
   expect(getPathFromState(state, config)).toBe(path);
-  expect(getPathFromState(getStateFromPath(path), config)).toBe(path);
+  expect(getPathFromState(getStateFromPath(path, config), config)).toBe(path);
 });
 
 it('handles nested object for second route depth and and path and stringify in roots', () => {
   const path = '/baz';
-  const config = {
+  const stateConfig = {
+    Foo: {
+      path: 'foo/:id',
+      Foe: 'foe',
+      Bar: {
+        path: 'bar/:id',
+        parse: {
+          id: Number,
+        },
+        Baz: 'baz',
+      },
+    },
+  };
+
+  const pathConfig = {
     Foo: {
       path: 'foo/:id',
       stringify: {
@@ -342,9 +404,6 @@ it('handles nested object for second route depth and and path and stringify in r
         path: 'bar/:id',
         stringify: {
           id: (id: number) => `id=${id}`,
-        },
-        parse: {
-          id: Number,
         },
         Baz: 'baz',
       },
@@ -369,8 +428,10 @@ it('handles nested object for second route depth and and path and stringify in r
     ],
   };
 
-  expect(getPathFromState(state, config)).toBe(path);
-  expect(getPathFromState(getStateFromPath(path))).toBe(path);
+  expect(getPathFromState(state, pathConfig)).toBe(path);
+  expect(
+    getPathFromState(getStateFromPath(path, stateConfig), pathConfig)
+  ).toBe(path);
 });
 
 it('converts state with initial prop in config to empty path string', () => {
@@ -382,7 +443,25 @@ it('converts state with initial prop in config to empty path string', () => {
     ],
   };
 
-  const config = {
+  const stateConfig = {
+    Foo: {
+      path: 'foo/:id',
+      stringify: {
+        id: (id: number) => `id=${id}`,
+      },
+      initial: true,
+      Foe: 'foe',
+      Bar: {
+        path: 'bar/:id',
+        parse: {
+          id: Number,
+        },
+        Baz: 'baz',
+      },
+    },
+  };
+
+  const pathConfig = {
     Foo: {
       path: 'foo/:id',
       stringify: {
@@ -405,49 +484,103 @@ it('converts state with initial prop in config to empty path string', () => {
 
   const path = '';
 
-  expect(getPathFromState(state, config)).toBe(path);
-  expect(getPathFromState(getStateFromPath(path, config), config)).toBe(path);
+  expect(getPathFromState(state, pathConfig)).toBe(path);
+  expect(
+    getPathFromState(getStateFromPath(path, stateConfig), pathConfig)
+  ).toBe(path);
 });
 
-// it('converts state with initial prop in nested config to empty path string', () => {
-//   const state = {
-//     routes: [
-//       {
-//         name: 'Foo',
-//         state: {
-//           routes: [
-//             {
-//               name: 'Bar',
-//             },
-//           ],
-//         },
-//       },
-//     ],
-//   };
+it('converts state with initial prop in nested config to empty path string', () => {
+  const state = {
+    routes: [
+      {
+        name: 'Foo',
+        state: {
+          routes: [
+            {
+              name: 'Bar',
+              state: {
+                routes: [{ name: 'Baz' }],
+              },
+            },
+          ],
+        },
+      },
+    ],
+  };
 
-//   const config = {
-//     Foo: {
-//       path: 'foo/:id',
-//       stringify: {
-//         id: (id: number) => `id=${id}`,
-//       },
-//       Foe: 'foe',
-//       Bar: {
-//         path: 'bar/:id',
-//         stringify: {
-//           id: (id: number) => `id=${id}`,
-//         },
-//         parse: {
-//           id: Number,
-//         },
-//         initial: true,
-//         Baz: 'baz',
-//       },
-//     },
-//   };
+  const stateConfig = {
+    Foo: {
+      path: 'foo/:id',
+      Foe: 'foe',
+      Bar: {
+        path: 'bar/:id',
+        parse: {
+          id: Number,
+        },
+        Baz: {
+          initial: true,
+        },
+      },
+    },
+  };
 
-//   const path = '';
+  const pathConfig = {
+    Foo: {
+      path: 'foo/:id',
+      stringify: {
+        id: (id: number) => `id=${id}`,
+      },
+      Foe: 'foe',
+      Bar: {
+        path: 'bar/:id',
+        stringify: {
+          id: (id: number) => `id=${id}`,
+        },
+        Baz: {
+          initial: true,
+        },
+      },
+    },
+  };
 
-//   expect(getPathFromState(state, config)).toBe(path);
-//   expect(getPathFromState(getStateFromPath(path, config))).toBe(path);
-// });
+  const path = '';
+
+  expect(getPathFromState(state, pathConfig)).toBe(path);
+  expect(
+    getPathFromState(getStateFromPath(path, stateConfig), pathConfig)
+  ).toBe(path);
+});
+
+it('throws if state is undefined', () => {
+  const config = {
+    Foo: {
+      path: 'foo/:id',
+      stringify: {
+        id: (id: number) => `id=${id}`,
+      },
+      Foe: 'foe',
+      Bar: {
+        path: 'bar/:id',
+        stringify: {
+          id: (id: number) => `id=${id}`,
+        },
+        parse: {
+          id: Number,
+        },
+        Baz: {
+          path: 'baz',
+        },
+      },
+    },
+  };
+
+  const path = '';
+
+  expect(() => getPathFromState(undefined, config)).toThrowError(
+    'NavigationState not passed'
+  );
+  expect(() =>
+    getPathFromState(getStateFromPath(path, config), config)
+  ).toThrowError('NavigationState not passed');
+});

@@ -45,22 +45,23 @@ export default function getStateFromPath(
   path: string,
   options: Options = {}
 ): ResultState | undefined {
-  // If path is empty string, we have to find `initial prop in config and return it
+  // If path is empty string, we have to find `initial` prop in config and return it
   if (path === '') {
-    const initialConfigRouteNames = findInitialConfigNames(options, [], '');
-    initialConfigRouteNames.shift();
-    const state = { routes: [{ name: '' }] };
+    let initialConfigNames = findInitialConfigNames(options, []);
+    if (initialConfigNames.length === 0) {
+      return undefined;
+    }
+    let state = { routes: [] } as ResultState;
     let helper = state;
     let name;
-    while ((name = initialConfigRouteNames.shift())) {
-      if (initialConfigRouteNames.length === 0) {
-        helper.routes[0] = { name };
+    while ((name = initialConfigNames.shift())) {
+      if (initialConfigNames.length === 0) {
+        helper.routes.push({ name });
         break;
       }
-      helper.routes[0] = { name, state: { routes: [{ name: '' }] } };
+      helper.routes.push({ name, state: { routes: [] } });
       helper = helper.routes[0].state as ResultState;
     }
-    console.warn(state);
     return state;
   }
 
@@ -146,12 +147,12 @@ export default function getStateFromPath(
             ...(params && { params }),
           });
         } else {
-          helper.routes[0] = {
+          helper.routes.push({
             name: routeName,
             state: {
               routes: [],
             },
-          };
+          });
           helper = helper.routes[0].state as InitialState;
         }
       }
@@ -228,14 +229,9 @@ function createNormalizedConfigs(
             value.parse ? (value.parse as ParseConfig) : undefined
           )
         );
-      } else if (
-        nestedKey === 'parse' ||
-        nestedKey === 'initial' ||
-        nestedKey === 'stringify'
-      ) {
+      } else if (nestedKey === 'parse' || nestedKey === 'initial') {
         // We handle custom parse function when a `path` is specified (in nestedKey === path)
         // `initial` prop should be ignored if path is not empty string
-        // `stringify` prop is used in tests to create similar configs and should be ignored too
       } else {
         // If the name of the key is not `path` or `parse` or `initial`, it's a nested config for route
         // So we need to traverse into it and collect the configs
@@ -296,24 +292,26 @@ function findParseConfigForRoute(
 
 function findInitialConfigNames(
   config: Options,
-  routeNames: string[],
-  currentName: string
+  routeNames: string[]
 ): string[] {
-  routeNames.push(currentName);
-
   for (const name in config) {
-    console.warn(name);
-    if (typeof config[name] === 'object' && name !== 'string') {
-      console.warn(config[name]);
+    if (typeof config[name] === 'object' && name !== 'parse') {
+      routeNames.push(name);
       if ((config[name] as { initial?: boolean }).initial) {
-        routeNames.push(name);
         return routeNames;
       } else {
-        return findInitialConfigNames(config[name], routeNames, name);
+        const newRouteNames = findInitialConfigNames(
+          config[name] as Options,
+          []
+        );
+        if (newRouteNames.length > 0) {
+          // there were new elements added
+          routeNames.push(...newRouteNames);
+          return routeNames;
+        }
       }
+      routeNames.pop();
     }
   }
-
-  routeNames.pop();
   return routeNames;
 }
