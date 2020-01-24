@@ -64,7 +64,7 @@ export default function getPathFromState(
         pattern = currentOptions[route.name] as string;
         break;
       } else if (typeof currentOptions[route.name] === 'object') {
-        // if there is `initial` prop in config, we should return empty string immidiately
+        // if there is `initial` prop in the config, we should return an empty string immediately
         if ((currentOptions[route.name] as { initial?: boolean }).initial) {
           return '';
         }

@@ -231,9 +231,9 @@ function createNormalizedConfigs(
         );
       } else if (nestedKey === 'parse' || nestedKey === 'initial') {
         // We handle custom parse function when a `path` is specified (in nestedKey === path)
-        // `initial` prop should be ignored if path is not empty string
+        // `initial` prop should be ignored if the path is not an empty string
       } else {
-        // If the name of the key is not `path` or `parse` or `initial`, it's a nested config for route
+        // If the name of the key is not `path` or `parse` or `initial`, it's a nested config for the route
         // So we need to traverse into it and collect the configs
         const result = createNormalizedConfigs(
           nestedKey,

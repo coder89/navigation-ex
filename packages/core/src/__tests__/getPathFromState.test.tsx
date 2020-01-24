@@ -490,7 +490,7 @@ it('converts state with initial prop in config to empty path string', () => {
   ).toBe(path);
 });
 
-it('converts state with initial prop in nested config to empty path string', () => {
+it('converts state with initial prop in nested config to an empty path string', () => {
   const state = {
     routes: [
       {
