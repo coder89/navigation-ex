@@ -64,8 +64,11 @@ export default function getPathFromState(
         pattern = currentOptions[route.name] as string;
         break;
       } else if (typeof currentOptions[route.name] === 'object') {
-        // if there is `initial` prop in the config, we should return an empty string immediately
-        if ((currentOptions[route.name] as { initial?: boolean }).initial) {
+        // if there is `initial` prop in the config and it is the of the state object, we should return an empty string immediately
+        if (
+          (currentOptions[route.name] as { initial?: boolean }).initial &&
+          route.state === undefined
+        ) {
           return '';
         }
         if (route.state === undefined) {
@@ -81,11 +84,9 @@ export default function getPathFromState(
       }
     }
 
-    const config =
-      currentOptions[route.name] !== undefined
-        ? (currentOptions[route.name] as { stringify?: StringifyConfig })
-            .stringify
-        : undefined;
+    const config = (currentOptions[route.name] as {
+      stringify?: StringifyConfig;
+    })?.stringify;
 
     const params = route.params
       ? // Stringify all of the param values before we use them
