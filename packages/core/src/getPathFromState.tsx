@@ -12,6 +12,7 @@ type Options = {
         path?: string;
         stringify?: StringifyConfig;
         screens?: Options;
+        initialRouteName?: string;
       };
 };
 

@@ -119,63 +119,27 @@ export default function getStateFromPath(
       remaining = segments.join('/');
     }
 
-    let state: InitialState;
+    let state: InitialState = { routes: [] };
     let routeName = routeNames.shift() as string;
     let initialRoute = findInitialRoute(routeName, initialRoutes);
 
-    if (routeNames.length === 0) {
-      state = parseRoute(
-        initialRoute,
-        routeName,
-        routeNames.length === 0,
-        params
-      );
-    } else {
-      state = parseRoute(initialRoute, routeName, routeNames.length === 0);
+    parseRoute(state, initialRoute, routeName, routeNames.length === 0, params);
+
+    if (routeName.length > 0) {
       let helper = state.index
         ? (state.routes[state.index].state as InitialState)
         : (state.routes[0].state as InitialState);
 
-      while ((routeName = routeNames.shift())) {
+      while ((routeName = routeNames.shift() as string)) {
         initialRoute = findInitialRoute(routeName, initialRoutes);
-        if (routeNames.length === 0) {
-          if (initialRoute) {
-            helper.index = 1;
-            helper.routes.push(
-              { name: initialRoute },
-              {
-                name: routeName,
-                ...(params && { params }),
-              }
-            );
-            console.warn(JSON.stringify(helper));
-          } else {
-            helper.routes.push({
-              name: routeName,
-              ...(params && { params }),
-            });
-          }
-        } else {
-          if (initialRoute) {
-            helper.index = 1;
-            helper.routes.push(
-              { name: initialRoute },
-              {
-                name: routeName,
-                state: {
-                  routes: [],
-                },
-              }
-            );
-          } else {
-            helper.routes.push({
-              name: routeName,
-              state: {
-                routes: [],
-              },
-            });
-          }
-
+        parseRoute(
+          helper,
+          initialRoute,
+          routeName,
+          routeNames.length === 0,
+          params
+        );
+        if (routeNames.length > 0) {
           helper = helper.index
             ? (helper.routes[helper.index].state as InitialState)
             : (helper.routes[0].state as InitialState);
@@ -185,17 +149,13 @@ export default function getStateFromPath(
 
     if (current) {
       // The state should be nested inside the deepest route we parsed before
-      while (
-        current.index
-          ? current.routes[current.index].state
-          : current.routes[0].state
-      ) {
-        current = current?.index
-          ? current.routes[current.index].state
-          : current.routes[0].state;
+      while (current?.routes[findRouteIndex(current)].state) {
+        current = current.routes[findRouteIndex(current)].state;
       }
 
-      current.routes[0].state = state;
+      (current as PartialState<NavigationState>).routes[
+        findRouteIndex(current)
+      ].state = state;
     } else {
       result = state;
     }
@@ -210,20 +170,14 @@ export default function getStateFromPath(
   const query = path.split('?')[1];
 
   if (query) {
-    while (
-      current.index
-        ? current.routes[current.index].state
-        : current.routes[0].state
-    ) {
+    while (current?.routes[findRouteIndex(current)].state) {
       // The query params apply to the deepest route
-      current = current?.index
-        ? current.routes[current.index].state
-        : current.routes[0].state;
+      current = current.routes[findRouteIndex(current)].state;
     }
 
-    const route = current?.index
-      ? current.routes[current.index]
-      : current.routes[0];
+    const route = (current as PartialState<NavigationState>).routes[
+      findRouteIndex(current)
+    ];
 
     const params = queryString.parse(query);
     const parseFunction = findParseConfigForRoute(route.name, configs);
@@ -259,24 +213,19 @@ function createNormalizedConfigs(
     configs.push(createConfigItem(routeNames, value));
   } else if (typeof value === 'object') {
     // if an object is specified as the value (e.g. Foo: { ... }),
-    // it has `path` property and
+    // it can have `path` property and
     // it could have `screens` prop which has nested configs
-    if (value.initialRouteName) {
-      if (!value.screens?.[value.initialRouteName]) {
-        throw Error(
-          `No such route in ${value}'s config: ${value.initialRouteName}`
-        );
-      }
-      initials.push({
-        initialRouteName: value.initialRouteName,
-        connectedRoutes: Object.keys(value.screens),
-      });
-    }
-    // navigators can't have `path` property so we don't make it possible to navigate to them
     if (value.path) {
       configs.push(createConfigItem(routeNames, value.path, value.parse));
     }
     if (value.screens) {
+      // property `initialRouteName` without `screens` has no purpose
+      if (value.initialRouteName) {
+        initials.push({
+          initialRouteName: value.initialRouteName,
+          connectedRoutes: Object.keys(value.screens),
+        });
+      }
       Object.keys(value.screens).forEach(nestedConfig => {
         const result = createNormalizedConfigs(
           nestedConfig,
@@ -339,38 +288,40 @@ function findInitialRoute(
 }
 
 function parseRoute(
+  state: InitialState,
   initialRoute: string | undefined,
   routeName: string,
   isEmpty: boolean,
   params?: Record<string, any> | undefined
-): InitialState {
+) {
   if (isEmpty) {
     if (initialRoute) {
-      return {
-        index: 1,
-        routes: [
-          { name: initialRoute },
-          { name: routeName as string, ...(params && { params }) },
-        ],
-      };
+      state.index = 1;
+      state.routes = [
+        { name: initialRoute },
+        { name: routeName as string, ...(params && { params }) },
+      ];
     } else {
-      return {
-        routes: [{ name: routeName as string, ...(params && { params }) }],
-      };
+      state.routes = [{ name: routeName as string, ...(params && { params }) }];
     }
   } else {
     if (initialRoute) {
-      return {
-        index: 1,
-        routes: [
-          { name: initialRoute },
-          { name: routeName as string, state: { routes: [] } },
-        ],
-      };
+      state.index = 1;
+      state.routes = [
+        { name: initialRoute },
+        { name: routeName as string, state: { routes: [] } },
+      ];
     } else {
-      return {
-        routes: [{ name: routeName as string, state: { routes: [] } }],
-      };
+      state.routes = [{ name: routeName as string, state: { routes: [] } }];
     }
   }
+}
+
+function findRouteIndex(
+  state: PartialState<NavigationState> | undefined
+): number {
+  if (state) {
+    return state.index ? state.index : 0;
+  }
+  return 0;
 }
