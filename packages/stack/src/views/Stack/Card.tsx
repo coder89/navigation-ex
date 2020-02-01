@@ -14,6 +14,7 @@ import {
   State as GestureState,
   PanGestureHandlerGestureEvent,
 } from 'react-native-gesture-handler';
+import { Route } from '@react-navigation/native';
 import { EdgeInsets } from 'react-native-safe-area-context';
 import Color from 'color';
 import StackGestureRefContext from '../../utils/GestureHandlerRefContext';
@@ -22,6 +23,7 @@ import getDistanceForDirection from '../../utils/getDistanceForDirection';
 import getInvertedMultiplier from '../../utils/getInvertedMultiplier';
 import memoize from '../../utils/memoize';
 import {
+  Scene,
   TransitionSpec,
   StackCardStyleInterpolator,
   GestureDirection,
@@ -30,6 +32,7 @@ import {
 
 type Props = ViewProps & {
   index: number;
+  scene: Scene<Route<string>>;
   closing: boolean;
   next?: Animated.AnimatedInterpolation;
   current: Animated.AnimatedInterpolation;
@@ -156,7 +159,11 @@ export default class Card extends React.Component<Props> {
     const spec = closing ? transitionSpec.close : transitionSpec.open;
 
     const animation =
-      spec.animation === 'spring' ? Animated.spring : Animated.timing;
+      spec.animation === 'spring'
+        ? Animated.spring
+        : (spec.animation === 'timing'
+          ? Animated.timing
+          : spec.animation.bind(this.props));
 
     this.setPointerEventsEnabled(!closing);
     this.handleStartInteraction();

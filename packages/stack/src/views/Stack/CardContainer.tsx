@@ -131,6 +131,7 @@ function CardContainer({
   return (
     <Card
       index={index}
+      scene={scene}
       gestureDirection={gestureDirection}
       layout={layout}
       insets={insets}

@@ -447,7 +447,8 @@ export type TimingConfig = {
 
 export type TransitionSpec =
   | { animation: 'spring'; config: SpringConfig }
-  | { animation: 'timing'; config: TimingConfig };
+  | { animation: 'timing'; config: TimingConfig }
+  | { animation: (value: Animated.AnimatedValue | Animated.AnimatedValueXY, config: Animated.AnimationConfig) => Animated.CompositeAnimation; config: TimingConfig };
 
 export type StackCardInterpolationProps = {
   /**
